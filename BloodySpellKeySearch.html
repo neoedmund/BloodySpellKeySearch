@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang = "zh-CN" >
+	<head >
+		<meta charset = "UTF-8" />
+		<meta name = "viewport" content = "width=device-width, initial-scale=1.0" />
+		<title >解迷1 - 嗜血印开锁迷题求解 </title >
+		<style >
+			/* 基本页面样式 */
+			body {
+				font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+				Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				height: 100vh;
+				margin: 0;
+				background-color: #f0f2f5;
+				color: #333;
+				/* 防止拖动时选中页面上的文字 */
+				user-select: none;
+			}
+			h1 {
+				color: #1a202c;
+				margin-bottom: 24px;
+			}
+			/* 网格容器样式 */
+			#grid-container {
+				display: grid;
+				grid-template-columns: repeat( 6, 60px ) ;
+				grid-template-rows: repeat( 6, 60px ) ;
+				border: 2px solid #cbd5e0;
+				background-color: #fff;
+				box-shadow: 0 10px 15px -3px rgba( 0, 0, 0, 0.1 ), 0 4px 6px -2px rgba( 0, 0, 0, 0.05 ) ;
+				border-radius: 8px;
+				padding: 5px;
+			}
+			/* 网格单元格样式 */
+			.grid-cell {
+				width: 60px;
+				height: 60px;
+				border: 1px solid #e2e8f0;
+				box-sizing: border-box;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 24px;
+				font-weight: bold;
+				cursor: pointer;
+				transition: background-color 0.2s ease-in-out;
+			}
+			/* 已填充内容的单元格样式 */
+			.grid-cell.filled {
+				color: #fff;
+				background-color: #4299e1; /* 蓝色背景 */
+				border-color: #2b6cb0;
+				cursor: not-allowed;
+			}
+			/* 拖动时高亮显示的路径样式 */
+			.grid-cell.highlight {
+				background-color: #bee3f8; /* 淡蓝色高亮 */
+			}
+			/* 控制区域样式 */
+			.controls {
+				margin-top: 25px;
+				display: flex;
+				align-items: center;
+				gap: 15px; /* 添加元素间距 */
+				font-size: 16px;
+				padding: 12px;
+				background-color: #fff;
+				border-radius: 8px;
+				box-shadow: 0 4px 6px -1px rgba( 0, 0, 0, 0.1 ), 0 2px 4px -1px rgba( 0, 0, 0, 0.06 ) ;
+			}
+			.select-group {
+				display: flex;
+				align-items: center;
+			}
+			.controls label {
+				margin-right: 10px;
+				font-weight: 500;
+			}
+			/* 下拉选择框样式 */
+			#number-selector {
+				padding: 8px 12px;
+				font-size: 16px;
+				border: 1px solid #cbd5e0;
+				border-radius: 6px;
+				background-color: #fff;
+				min-width: 150px;
+				transition: border-color 0.2s, box-shadow 0.2s;
+			}
+			#number-selector:focus {
+				outline: none;
+				border-color: #4299e1;
+				box-shadow: 0 0 0 3px rgba( 66, 153, 225, 0.5 ) ;
+			}
+			/* 清空按钮样式 */
+			#reset-button {
+				padding: 8px 20px;
+				font-size: 16px;
+				font-weight: 500;
+				color: #fff;
+				background-color: #e53e3e; /* 红色 */
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				transition: background-color 0.2s;
+			}
+			#reset-button:hover {
+				background-color: #c53030;
+			}
+			#ok-button {
+				padding: 8px 20px;
+				font-size: 16px;
+				font-weight: 500;
+				color: #fff;
+				background-color: #3ee53e;
+				border: none;
+				border-radius: 6px;
+				cursor: pointer;
+				transition: background-color 0.2s;
+			}
+			#ok-button:hover {
+				background-color: #30c530;
+			}
+			
+			
+			.container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 20px;
+        }
+        
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            width: 180px; /* 6 cells * 30px */
+            border: 1px solid #ccc;
+        }
+        
+        .cell {
+            width: 28px;
+            height: 28px;
+            border: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: monospace;
+            background-color: #666;
+            color:#eee;
+        }
+        .cell-highlight{
+        		background-color: #f66;
+            color:#eee;
+        }
+        .cell-highlight2{
+        		background-color: #339;
+            color:#eee;
+        }
+        .grid-title {
+            width: 100%;
+            text-align: center;
+            padding: 5px;
+            background-color: #66a;
+            color:#eee;
+            font-family: sans-serif;
+        }
+        
+		</style >
+		<script  >  document . addEventListener ( 'DOMContentLoaded' , ( ) => {
+		// 获取DOM元素
+		const gridContainer = document . getElementById ( 'grid-container' ) ;
+		const numberSelector = document . getElementById ( 'number-selector' ) ;
+		const resetButton = document . getElementById ( 'reset-button' ) ;
+		const gridSize = 6 ;
+
+		// 状态变量
+		let isDragging = false ;
+		let startCell = null ;
+		let pathCells = [ ] ;
+
+		// 计数器
+		let currentNumber = 1 ;
+		let currentLetterCode = 'A' . charCodeAt ( 0 ) ;
+		let generatedNumbers = [ ] ; // 使用let使其可被重置
+		/**
+     * 初始化6x6网格
+     */
+		function initializeGrid ( ) {
+			for ( let row = 0 ; row < gridSize ; row ++ ) {
+				for ( let col = 0 ; col < gridSize ; col ++ ) {
+					const cell = document . createElement ( 'div' ) ;
+					cell . classList . add ( 'grid-cell' ) ;
+					cell . dataset . row = row ;
+					cell . dataset . col = col ;
+					gridContainer . appendChild ( cell ) ;
+				}
+			}
+		}
+
+		const allCells = [ ] ; // 稍后填充
+		/**
+     * 根据行和列获取单元格元素
+     * @param {number} row - 行索引
+     * @param {number} col - 列索引
+     * @returns {HTMLElement|null} 单元格元素或null
+     */
+		function getCell ( row , col ) {
+			if ( row >= 0 && row < gridSize && col >= 0 && col < gridSize ) {
+				return allCells [ row * gridSize + col ] ;
+			}
+			return null ;
+		}
+
+		/**
+     * 处理鼠标按下事件
+     * @param {MouseEvent} e - 事件对象
+     */
+		function handleMouseDown ( e ) {
+			if ( e . target . classList . contains ( 'grid-cell' ) && ! e . target . classList . contains ( 'filled' ) ) {
+				e . preventDefault ( ) ;
+				isDragging = true ;
+				startCell = e . target ;
+				pathCells = [ startCell ] ;
+				startCell . classList . add ( 'highlight' ) ;
+			}
+		}
+
+		/**
+     * 处理鼠标移动事件
+     * @param {MouseEvent} e - 事件对象
+     */
+		function handleMouseMove ( e ) {
+			if ( ! isDragging || ! startCell ) return ;
+
+			const currentCell = document . elementFromPoint ( e . clientX , e . clientY ) ;
+
+			if ( ! currentCell || ! currentCell . classList . contains ( 'grid-cell' ) || pathCells . includes ( currentCell ) ) {
+				return ;
+			}
+
+			pathCells . forEach ( cell => cell . classList . remove ( 'highlight' ) ) ;
+			pathCells = [ ] ;
+
+			const startRow = parseInt ( startCell . dataset . row ) ;
+			const startCol = parseInt ( startCell . dataset . col ) ;
+			const endRow = parseInt ( currentCell . dataset . row ) ;
+			const endCol = parseInt ( currentCell . dataset . col ) ;
+
+			if ( startRow === endRow ) {
+				const minCol = Math . min ( startCol , endCol ) ;
+				const maxCol = Math . max ( startCol , endCol ) ;
+				for ( let c = minCol ; c <= maxCol ; c ++ ) {
+					pathCells . push ( getCell ( startRow , c ) ) ;
+				}
+			} else if ( startCol === endCol ) {
+				const minRow = Math . min ( startRow , endRow ) ;
+				const maxRow = Math . max ( startRow , endRow ) ;
+				for ( let r = minRow ; r <= maxRow ; r ++ ) {
+					pathCells . push ( getCell ( r , startCol ) ) ;
+				}
+			} else {
+				pathCells = [ startCell ] ;
+			}
+
+			pathCells . forEach ( cell => cell && cell . classList . add ( 'highlight' ) ) ;
+		}
+
+		/**     * 处理鼠标松开事件     */
+		function handleMouseUp ( ) {
+			if ( ! isDragging || ! startCell ) return ;
+			isDragging = false ;
+
+			const isOverlapping = pathCells . some ( cell => cell && cell . textContent !== '' ) ;
+			if ( pathCells . length > 1 && ! isOverlapping ) {
+				const startRow = parseInt ( startCell . dataset . row ) ;
+				const endRow = parseInt ( pathCells [ pathCells . length - 1 ] . dataset . row ) ;
+
+				if ( startRow === endRow ) { // 横向填充数字
+					pathCells . forEach ( cell => {
+							cell . textContent = currentNumber ;
+							cell . classList . add ( 'filled' ) ;
+						} ) ;
+					generatedNumbers . push ( currentNumber ) ;
+					updateSelector ( ) ;
+					currentNumber ++ ;
+				} else { // 纵向填充字母
+					const letter = String . fromCharCode ( currentLetterCode ) ;
+					pathCells . forEach ( cell => {
+							cell . textContent = letter ;
+							cell . classList . add ( 'filled' ) ;
+						} ) ;
+					currentLetterCode ++ ;
+				}
+			}
+
+			allCells . forEach ( cell => cell . classList . remove ( 'highlight' ) ) ;
+			startCell = null ;
+			pathCells = [ ] ;
+		}
+
+		/**     * 更新下拉选择框中的数字     */
+		function updateSelector ( ) {
+			numberSelector . innerHTML = '' ;
+			if ( generatedNumbers . length === 0 ) {
+				numberSelector . innerHTML = '<option>--暂无数字--</option>' ;
+				return ;
+			}
+
+			generatedNumbers . sort ( ( a , b ) => a - b ) . forEach ( num => {
+					const option = document . createElement ( 'option' ) ;
+					option . value = num ;
+					option . textContent = num ;
+					numberSelector . appendChild ( option ) ;
+				} ) ;
+		}
+
+		/**     * 重置整个网格和状态     */
+		function resetGrid ( ) {
+			// 清空所有单元格内容和样式
+			allCells . forEach ( cell => {
+					cell . textContent = '' ;
+					cell . classList . remove ( 'filled' , 'highlight' ) ;
+				} ) ;
+			// 重置计数器
+			currentNumber = 1 ;
+			currentLetterCode = 'A' . charCodeAt ( 0 ) ;
+			generatedNumbers = [ ] ;
+			// 更新选择框
+			updateSelector ( ) ;
+		}
+
+		// --- 初始化和事件绑定 ---
+		initializeGrid ( ) ;
+		allCells . push ( ... document . querySelectorAll ( '.grid-cell' ) ) ;
+
+		gridContainer . addEventListener ( 'mousedown' , handleMouseDown ) ;
+		document . addEventListener ( 'mousemove' , handleMouseMove ) ;
+		document . addEventListener ( 'mouseup' , handleMouseUp ) ;
+		resetButton . addEventListener ( 'click' , resetGrid ) ; // 绑定清空按钮事件
+		appInit ( )
+	} ) ;
+class Grid {
+	static get ( s , i , j ) {
+		if ( i < 0 || i >= Main . N || j < 0 || j >= Main . N ) return '#' ;
+		return s [ i + j * Main . N ] ;
+	}
+
+	static toP ( x , y ) {
+		return x + y * Main . N ;
+	}
+}
+
+class Stat {
+	constructor ( data , prev ) {
+		this . data = data ;
+		this . prev = prev ;
+	}
+}
+
+class StatExtender {
+	static SP = '_' ;
+	static sum = 0 ;
+	static keyValue = '1' ;
+	static _moveH ( s , x0 , y , i , L ) {
+		const x = Grid . toP ( x0 , y ) ;
+		if ( i < 0 ) {
+			return s . substring ( 0 , x - 1 ) + s . substring ( x , x + L ) + StatExtender . SP + s . substring ( x + L ) ;
+		} else {
+			return s . substring ( 0 , x ) + StatExtender . SP + s . substring ( x , x + L ) + s . substring ( x + L + 1 ) ;
+		}
+	}
+
+	static _moveOut ( s , x , y , L ) {
+		const p1 = Grid . toP ( x , y ) ;
+		return s . substring ( 0 , p1 ) + StatExtender . mul ( StatExtender . SP , L ) + s . substring ( p1 + L ) ;
+	}
+
+	static _moveV ( s , x , y , i , L ) {
+		const ch = Grid . get ( s , x , y ) ;
+		if ( i < 0 ) {
+			const p1 = Grid . toP ( x , y - 1 ) ;
+			const p2 = Grid . toP ( x , y + L - 1 ) ;
+			return s . substring ( 0 , p1 ) + ch + s . substring ( p1 + 1 , p2 ) + StatExtender . SP + s . substring ( p2 + 1 ) ;
+		} else {
+			const p1 = Grid . toP ( x , y ) ;
+			const p2 = Grid . toP ( x , y + L ) ;
+			return s . substring ( 0 , p1 ) + StatExtender . SP + s . substring ( p1 + 1 , p2 ) + ch + s . substring ( p2 + 1 ) ;
+		}
+	}
+
+	static mul ( c , z ) {
+		return c . repeat ( z ) ;
+	}
+
+	constructor ( queue , first ) {
+		this . queue = queue ;
+		this . vis = new Set ( ) ;
+		this . inq ( first ) ;
+	}
+
+	inq ( stat ) {
+		// Main.confirm(stat.data.length === Main.N * Main.N, 'bug');
+		if ( this . vis . has ( stat . data ) ) return false ;
+		this . vis . add ( stat . data ) ;
+		StatExtender . sum ++ ;
+		if ( Main . GoalCheck_run ( stat ) ) {
+			Main . GoalFunc_run ( stat ) ;
+			return true ;
+		}
+		this . queue . push ( stat ) ;
+		return false ;
+	}
+
+	moveH ( st , x , y , i , L ) {
+		return this . inq ( new Stat ( StatExtender . _moveH ( st . data , x , y , i , L ) , st ) ) ;
+	}
+
+	moveOut ( st , x , y , L ) {
+		const s2 = StatExtender . _moveOut ( st . data , x , y , L ) ;
+		return this . inq ( new Stat ( s2 , st ) ) ;
+	}
+
+	moveV ( st , x , y , i , L ) {
+		return this . inq ( new Stat ( StatExtender . _moveV ( st . data , x , y , i , L ) , st ) ) ;
+	}
+
+	run ( lv , st ) {
+		this . lv = lv ;
+		const s = st . data ;
+		for ( let y = 0 ; y < 6 ; y ++ ) {
+			for ( let x = 0 ; x < 6 ; x ++ ) {
+				const c = Grid . get ( s , x , y ) ;
+				if ( c === StatExtender . SP ) continue ;
+				if ( c >= '0' && c <= '9' ) { // /[0-9]/.test( c )
+					let L = 1 ;
+					while ( Grid . get ( s , x + L , y ) === c ) L ++ ;
+					if ( Grid . get ( s , x - 1 , y ) === StatExtender . SP ) {
+						if ( this . moveH ( st , x , y , -1 , L ) ) return true ;
+					}
+					if ( Grid . get ( s , x + L , y ) === StatExtender . SP ) {
+						if ( this . moveH ( st , x , y , 1 , L ) ) return true ;
+					}
+					if ( y === 2 && x + L > Main . N ) {
+						this . moveOut ( st , x , y , L ) ;
+					}
+					x += L - 1 ;
+				} else {
+					if ( Grid . get ( s , x , y - 1 ) === c ) continue ;
+					let L = 1 ;
+					while ( Grid . get ( s , x , y + L ) === c ) L ++ ;
+					if ( Grid . get ( s , x , y - 1 ) === StatExtender . SP ) {
+						if ( this . moveV ( st , x , y , -1 , L ) ) return true ;
+					}
+					if ( Grid . get ( s , x , y + L ) === StatExtender . SP ) {
+						if ( this . moveV ( st , x , y , 1 , L ) ) return true ;
+					}
+				}
+			}
+		}
+		return false ;
+	}
+}
+
+class Main {
+	static N = 6 ;
+	static results = [ ] ;
+
+	// static confirm(b, msg) {    if (!b) console.log(`[e]${msg}`);  }
+	static GoalCheck_run ( st ) {
+		const s = st . data ;
+		return Grid . get ( s , 5 , 2 ) === StatExtender . keyValue ;
+	}
+
+	static GoalFunc_run ( st ) {
+		console . log ( `Found after ${StatExtender.sum} search` )
+		const ret = [ ] ;
+		while ( st ) {
+			ret . push ( st ) ;
+			st = st . prev ;
+		}
+		const step = ret . length - 1 ;
+		Main . results = [ ] ;
+		for ( let i = 0 ; i < step ; i ++ ) {
+			Main . results . push ( ret [ ret . length - 1 - ( i + 1 ) ] . data ) ;
+		}
+	}
+
+	run ( first0 , keyValue ) {
+		StatExtender . sum = 0 ;
+		StatExtender . keyValue = keyValue ;
+		const first = new Stat ( first0 , null ) ;
+		const queue = [ ] ;
+		const extender = new StatExtender ( queue , first ) ;
+		let lv = 0 ;
+
+		while ( true ) {
+			if ( queue . length === 0 ) {
+				return null ;
+			}
+			const turn = [ ... queue ] ;
+			queue . length = 0 ;
+			let goal = false ;
+			for ( const st of turn ) {
+				goal = extender . run ( lv , st ) ;
+				if ( goal ) return Main . results ;
+			}
+			lv ++ ;
+		}
+	}
+}
+
+// Export for use as a module
+//export default Main;
+//import Main from './Main.js';
+function appInit ( ) {
+	const okButton = document . getElementById ( 'ok-button' ) ;
+	okButton . addEventListener ( 'click' , doSearch ) ;
+	function doSearch ( ) {
+		const main = new Main ( ) ;
+		const first0 = gridToString ( ) ;
+		console . log ( first0 )
+		const keyValue = document . getElementById ( 'number-selector' ) . value ;
+		const result = main . run ( first0 , keyValue ) ; //"_11_22____33_44ABC555ABCD66677D_____"
+		console . log ( result ) ;
+		const resDiv = document . getElementById ( 'results' ) ;
+		if ( result ) {
+			resDiv . innerHTML = '<div class="container" id="gridContainer"></div>' ;
+			result . unshift ( first0 ) ;
+			renderGrids ( result ) ;
+		} else {
+			resDiv . innerHTML = '无解!' ;
+		}
+	}
+	function renderGrids ( results ) {
+		const container = document . getElementById ( 'gridContainer' ) ;
+
+		results . forEach ( ( str , index ) => {
+				if ( index == 0 ) return ;
+				const grid = document . createElement ( 'div' ) ;
+				grid . className = 'grid' ;
+
+				const title = document . createElement ( 'div' ) ;
+				title . className = 'grid-title' ;
+				title . textContent = `步骤 ${index}` ;
+				grid . appendChild ( title ) ;
+				str0 = results [ index -1 ] ;
+				for ( let i = 0 ; i < 36 ; i ++ ) {
+					const cell = document . createElement ( 'div' ) ;
+					cell . className = 'cell' ;
+					const a = str [ i ] || '' ;
+					const b = str0 [ i ] || '' ;
+					cell . textContent = a ;
+					if ( a != b  ) {
+						cell . classList . add ( a === '_' ? 'cell-highlight2' : 'cell-highlight' ) ;
+					}
+					grid . appendChild ( cell ) ;
+				}
+
+				container . appendChild ( grid ) ;
+			} ) ;
+	}
+	function gridToString ( ) {
+		const grid = [ ] ;
+		const cells = document . querySelectorAll ( '#grid-container .grid-cell' ) ;
+		cells . forEach ( cell => {
+				const text = cell . textContent || '_' ;
+				grid . push ( text ) ;
+			} ) ;
+		return grid . join ( '' )
+	}
+}
+</script >
+	</head >
+	<body >
+		<h1 >嗜血印开锁迷题求解</h1 >
+		<h2 >拖动填充网格</h2 >
+		<div id = "grid-container" ></div >
+		<div class = "controls" >
+			<div class = "select-group" >
+				<label for = "number-selector" >钥匙对应的数字:</label >
+				<select id = "number-selector" >
+					<option >--暂无数字--</option >
+				</select >
+			</div >
+			<button id = "reset-button" >清空</button >
+			<button id = "ok-button" >求解!</button >
+		</div >
+		<div id = results ></div >
+	</body >
+</html >
+
