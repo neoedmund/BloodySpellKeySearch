@@ -123,22 +123,22 @@
 			#ok-button:hover {
 				background-color: #30c530;
 			}
-			
-			
+
+
 			.container {
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
             padding: 20px;
         }
-        
+
         .grid {
             display: flex;
             flex-wrap: wrap;
             width: 180px; /* 6 cells * 30px */
             border: 1px solid #ccc;
         }
-        
+
         .cell {
             width: 28px;
             height: 28px;
@@ -166,7 +166,7 @@
             color:#eee;
             font-family: sans-serif;
         }
-        
+
 		</style >
 		<script  >  document . addEventListener ( 'DOMContentLoaded' , ( ) => {
 		// 获取DOM元素
@@ -442,7 +442,7 @@ class StatExtender {
 					if ( Grid . get ( s , x + L , y ) === StatExtender . SP ) {
 						if ( this . moveH ( st , x , y , 1 , L ) ) return true ;
 					}
-					if ( y === 2 && x + L > Main . N ) {
+					if ( y === 2 && x + L >= Main . N ) {
 						this . moveOut ( st , x , y , L ) ;
 					}
 					x += L - 1 ;
@@ -497,6 +497,7 @@ class Main {
 
 		while ( true ) {
 			if ( queue . length === 0 ) {
+				console.log(`Not found after ${StatExtender.sum} search`)
 				return null ;
 			}
 			const turn = [ ... queue ] ;
@@ -590,4 +591,3 @@ function appInit ( ) {
 		<div id = results ></div >
 	</body >
 </html >
-
